@@ -34,6 +34,12 @@ export interface TriageInfo {
   at?: number;
 }
 
+export interface LocationInfo {
+  lat: number;
+  lng: number;
+  accuracy: number | null;
+}
+
 export interface CallInfo {
   call_id: string;
   dialed_number: string;
@@ -44,12 +50,14 @@ export interface CallInfo {
   ended_at: number | null;
   emotion?: EmotionInfo | null;
   triage?: TriageInfo | null;
+  location?: LocationInfo | null;
 }
 
 export type ServerEvent =
   | { event: 'PONG' }
   | { event: 'QUEUE_SNAPSHOT'; calls: CallInfo[] }
   | { event: 'NEW_CALL'; call: CallInfo }
+  | { event: 'LOCATION_UPDATE'; call_id: string; location: LocationInfo }
   | { event: 'STATUS_CHANGED'; call_id: string; status: string; call?: CallInfo }
   | { event: 'CALL_CLAIMED'; call_id: string; agent_id: string }
   | { event: 'CALL_RELEASED'; call_id: string }

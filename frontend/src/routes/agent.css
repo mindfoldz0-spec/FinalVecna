@@ -197,6 +197,20 @@
 .emo.u1 { background: #94a3b8; color: #0b2239; }
 .emo.u0 { background: #10b981; color: #06281a; }
 .incall-emo { color: var(--aqua-dim); font-size: 14px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+
+/* caller location link — opens in Google Maps */
+.loc-link {
+  color: #7fd1e8;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  background: rgba(127, 209, 232, 0.12);
+  border: 1px solid rgba(127, 209, 232, 0.4);
+  border-radius: 999px;
+  padding: 2px 10px;
+  white-space: nowrap;
+}
+.loc-link:hover { background: rgba(127, 209, 232, 0.24); color: #bfeefb; }
 .queue-item button {
   margin-top: 6px;
   padding: 7px;

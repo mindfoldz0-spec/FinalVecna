@@ -119,7 +119,13 @@ pub async fn seed_agents(store: &Store, agents: &[&str], password: &str) {
     }
 }
 
-pub async fn record_call_created(store: &Store, call_id: &str, dialed: &str, ip: Option<&str>) {
+pub async fn record_call_created(
+    store: &Store,
+    call_id: &str,
+    dialed: &str,
+    ip: Option<&str>,
+    location: Option<(f64, f64, Option<f64>)>,
+) {
     let now = now_rfc3339();
     let ep = now_epoch();
     store.calls.insert(
@@ -131,20 +137,28 @@ pub async fn record_call_created(store: &Store, call_id: &str, dialed: &str, ip:
             "created_at": now, "created_epoch": ep, "shard": "ALL",
             "claimed_at": serde_json::Value::Null, "engaged_at": serde_json::Value::Null,
             "ended_at": serde_json::Value::Null, "ivr_finished_at": serde_json::Value::Null,
+            "location": location.map(|(lat, lng, acc)| serde_json::json!({ "lat": lat, "lng": lng, "accuracy": acc })),
         }),
     );
-    put_item(
-        "vecna_calls",
-        serde_json::json!({
-            "call_id": s(call_id),
-            "dialed_number": s(dialed),
-            "status": s("RINGING"),
-            "caller_ip": s(ip.unwrap_or_default()),
-            "created_at": s(&now),
-            "created_epoch": num(ep),
-            "shard": s("ALL"),
-        }),
-    );
+    let mut item = serde_json::json!({
+        "call_id": s(call_id),
+        "dialed_number": s(dialed),
+        "status": s("RINGING"),
+        "caller_ip": s(ip.unwrap_or_default()),
+        "created_at": s(&now),
+        "created_epoch": num(ep),
+        "shard": s("ALL"),
+    });
+    if let Some((lat, lng, acc)) = location {
+        let mut m = serde_json::Map::new();
+        m.insert("lat".into(), fnum(lat));
+        m.insert("lng".into(), fnum(lng));
+        if let Some(a) = acc {
+            m.insert("accuracy".into(), fnum(a));
+        }
+        item["location"] = serde_json::json!({ "M": serde_json::Value::Object(m) });
+    }
+    put_item("vecna_calls", item);
     log_event(store, call_id, None, "CREATED", None).await;
 }
 
@@ -241,6 +255,34 @@ pub async fn record_call_status(
     }
     put_item("vecna_calls", ddb);
     log_event(store, call_id, agent, event, None).await;
+}
+
+pub async fn record_call_location(store: &Store, call_id: &str, lat: f64, lng: f64, accuracy: Option<f64>) {
+    let loc = serde_json::json!({ "lat": lat, "lng": lng, "accuracy": accuracy });
+    if let Some(mut c) = store.calls.get_mut(call_id) {
+        c["location"] = loc;
+    }
+    // update-item (not put-item) so the call row isn't clobbered
+    let mut m = serde_json::Map::new();
+    m.insert("lat".into(), fnum(lat));
+    m.insert("lng".into(), fnum(lng));
+    if let Some(a) = accuracy {
+        m.insert("accuracy".into(), fnum(a));
+    }
+    fire(vec![
+        "dynamodb".into(),
+        "update-item".into(),
+        "--table-name".into(),
+        "vecna_calls".into(),
+        "--key".into(),
+        serde_json::json!({ "call_id": s(call_id) }).to_string(),
+        "--update-expression".into(),
+        "SET location = :loc".into(),
+        "--expression-attribute-values".into(),
+        serde_json::json!({ ":loc": serde_json::json!({ "M": serde_json::Value::Object(m) }) }).to_string(),
+        "--region".into(),
+        REGION.into(),
+    ]);
 }
 
 pub async fn record_recording(

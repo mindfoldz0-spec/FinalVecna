@@ -64,6 +64,7 @@ pub async fn list_calls(State(state): State<AppState>) -> Json<serde_json::Value
                 "engaged_at": c.get("engaged_at"),
                 "ended_at": c.get("ended_at"),
                 "ivr_finished_at": c.get("ivr_finished_at"),
+                "location": c.get("location"),
                 "recordings": recordings,
                 "last_emotion": last_emotion,
                 "last_urgency": last_urgency,
@@ -188,6 +189,7 @@ pub async fn call_detail(State(state): State<AppState>, Path(call_id): Path<Stri
             "agent_id": c.get("agent_id"),
             "created_at": c.get("created_at"),
             "ended_at": c.get("ended_at"),
+            "location": c.get("location"),
         })
     });
 

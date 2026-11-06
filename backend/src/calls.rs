@@ -47,6 +47,14 @@ pub struct EmotionView {
     pub at: f64,
 }
 
+/// Caller GPS fix (browser geolocation): shown on the officer queue card.
+#[derive(Debug, Clone, Serialize)]
+pub struct CallLocation {
+    pub lat: f64,
+    pub lng: f64,
+    pub accuracy: Option<f64>,
+}
+
 /// Triage of the transcribed message (Qwen via Groq): what is happening and
 /// how urgent — shown in the officer queue as a category label + urgency panel.
 #[derive(Debug, Clone, Serialize)]
@@ -74,6 +82,8 @@ pub struct Call {
     pub emotion: Option<EmotionView>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub triage: Option<TriageView>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub location: Option<CallLocation>,
 }
 
 impl Call {
@@ -88,6 +98,7 @@ impl Call {
             ended_at: None,
             emotion: None,
             triage: None,
+            location: None,
         }
     }
 }
@@ -167,6 +178,18 @@ impl CallManager {
         if let Some(mut c) = self.calls.get_mut(call_id) {
             c.triage = Some(t);
         }
+    }
+
+    /// Accept a caller GPS fix only if the coordinates are sane.
+    pub fn set_location(&self, call_id: &str, lat: f64, lng: f64, accuracy: Option<f64>) -> bool {
+        if !(-90.0..=90.0).contains(&lat) || !(-180.0..=180.0).contains(&lng) {
+            return false;
+        }
+        if let Some(mut c) = self.calls.get_mut(call_id) {
+            c.location = Some(CallLocation { lat, lng, accuracy });
+            return true;
+        }
+        false
     }
 
     pub fn snapshot(&self) -> Vec<Call> {

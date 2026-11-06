@@ -4,7 +4,7 @@ import Strands from '../components/Strands';
 import '../components/CrystalizedBall.css';
 import '../components/Strands.css';
 import './agent.css';
-import type { CallInfo, EmotionInfo, ServerEvent, TriageInfo } from '../lib/protocol';
+import type { CallInfo, EmotionInfo, LocationInfo, ServerEvent, TriageInfo } from '../lib/protocol';
 import { CallSocket, wsUrl } from '../lib/ws';
 import { applyRemote, createPeer } from '../lib/rtc';
 import { startCallRecorder, stopAndUpload } from '../lib/recorder';
@@ -22,6 +22,22 @@ function EmotionChip({ emo }: { emo: EmotionInfo }) {
     <span className={`emo u${emo.urgency}`} title={title}>
       {emo.label} · {Math.round(emo.confidence * 100)}%
     </span>
+  );
+}
+
+/** Caller location chip: coordinates + accuracy, opens in Google Maps. */
+function LocationChip({ loc }: { loc: LocationInfo }) {
+  const acc = loc.accuracy != null ? ` ±${Math.round(loc.accuracy)}m` : '';
+  return (
+    <a
+      className="loc-link"
+      href={`https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lng}`}
+      target="_blank"
+      rel="noreferrer"
+      title={`Open in Google Maps — ${loc.lat}, ${loc.lng}${acc}`}
+    >
+      📍 {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}{acc}
+    </a>
   );
 }
 
@@ -167,6 +183,9 @@ export default function Agent() {
             source: msg.source,
           },
         }));
+        break;
+      case 'LOCATION_UPDATE':
+        setCalls((prev) => prev.map((c) => (c.call_id === msg.call_id ? { ...c, location: msg.location } : c)));
         break;
       case 'TRIAGE_UPDATE':
         setTriages((prev) => ({
@@ -433,6 +452,7 @@ export default function Agent() {
                 {c.status}{c.agent_id ? ` · ${c.agent_id}` : ''}
                 {emotions[c.call_id] && <EmotionChip emo={emotions[c.call_id]} />}
               </div>
+              {c.location && <div className="q-meta"><LocationChip loc={c.location} /></div>}
               {triages[c.call_id] && <TriagePanel t={triages[c.call_id]} />}
               {c.status === 'WAITING' && (
                 <button onClick={() => claim(c.call_id)} disabled={!!activeCallId}>Accept</button>
@@ -458,6 +478,10 @@ export default function Agent() {
             {activeCallId && emotions[activeCallId] && (
               <div className="incall-emo">Caller emotion: <EmotionChip emo={emotions[activeCallId]} /></div>
             )}
+            {activeCallId && (() => {
+              const loc = calls.find((c) => c.call_id === activeCallId)?.location;
+              return loc ? <div className="incall-emo">Caller location: <LocationChip loc={loc} /></div> : null;
+            })()}
             {activeCallId && triages[activeCallId] && (
               <div className="incall-triage"><TriagePanel t={triages[activeCallId]} /></div>
             )}

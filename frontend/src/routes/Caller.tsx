@@ -42,6 +42,36 @@ export default function Caller() {
   const socketRef = useRef<CallSocket<unknown> | null>(null);
   const callIdRef = useRef<string | null>(null);
   const tokenRef = useRef<string | null>(null);
+  // Latest browser-geolocation fix, if the caller granted permission.
+  const locationRef = useRef<{ lat: number; lng: number; accuracy: number | null } | null>(null);
+
+  // Caller location getter — fires once on dialer mount so the fix usually
+  // lands before the call is placed. If it arrives mid-call, it is POSTed
+  // straight to the backend and shown in the officer queue.
+  useEffect(() => {
+    if (!('geolocation' in navigator)) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const loc = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+        };
+        locationRef.current = loc;
+        const id = callIdRef.current;
+        const tok = tokenRef.current;
+        if (id && tok) {
+          fetch(`/api/calls/${encodeURIComponent(id)}/location`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-call-token': tok },
+            body: JSON.stringify(loc),
+          }).catch(() => {});
+        }
+      },
+      () => { /* denied / unavailable — proceed without a location */ },
+      { enableHighAccuracy: false, timeout: 6000, maximumAge: 300000 },
+    );
+  }, []);
   const streamRef = useRef<MediaStream | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -182,7 +212,7 @@ export default function Caller() {
       const res = await fetch('/api/calls', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dialed_number: number }),
+        body: JSON.stringify({ dialed_number: number, location: locationRef.current }),
       });
       if (!res.ok) throw new Error('gateway busy');
       ({ call_id, call_token } = await res.json());

@@ -114,6 +114,7 @@ async fn main() {
         .route("/api/health", get(health))
         .route("/api/calls", post(signaling::create_call).get(api::list_calls))
         .route("/api/calls/:id", get(api::call_detail))
+        .route("/api/calls/:id/location", post(signaling::set_call_location))
         .route("/api/rtc-config", get(rtc::rtc_config))
         .route("/api/agent/login", post(auth::agent_login))
         .route("/api/agent/list", get(auth::list_agents))

@@ -13,8 +13,16 @@ use std::sync::Arc;
 use crate::{AppState, auth, calls::{Call, CallStatus}, db};
 
 #[derive(Deserialize)]
+pub struct LocationBody {
+    pub lat: f64,
+    pub lng: f64,
+    pub accuracy: Option<f64>,
+}
+
+#[derive(Deserialize)]
 pub struct CreateCallBody {
     pub dialed_number: String,
+    pub location: Option<LocationBody>,
 }
 
 #[derive(Serialize)]
@@ -40,7 +48,11 @@ pub async fn create_call(
     let token = auth::sign_call_token(&state.call_token_secret, &call.call_id);
     let ip = addr.ip().to_string();
     crate::rate_check("calls", addr.ip())?;
-    db::record_call_created(&state.db, &call.call_id, &call.dialed_number, Some(&ip)).await;
+    if let Some(ref loc) = body.location {
+        state.calls.set_location(&call.call_id, loc.lat, loc.lng, loc.accuracy);
+    }
+    let locv = body.location.as_ref().map(|l| (l.lat, l.lng, l.accuracy));
+    db::record_call_created(&state.db, &call.call_id, &call.dialed_number, Some(&ip), locv).await;
     broadcast_agents(
         &state,
         &serde_json::json!({ "event": "NEW_CALL", "call": call }),
@@ -51,6 +63,36 @@ pub async fn create_call(
         dialed_number: call.dialed_number,
         call_token: token,
     }))
+}
+
+/// POST /api/calls/:id/location — caller pushes a browser geolocation fix
+/// (usually after the call already exists; the dialer fires this as soon as
+/// the GPS resolves). Caller-token auth, like uploads.
+pub async fn set_call_location(
+    State(state): State<AppState>,
+    Path(call_id): Path<String>,
+    headers: axum::http::HeaderMap,
+    Json(body): Json<LocationBody>,
+) -> Result<axum::Json<serde_json::Value>, StatusCode> {
+    let token_ok = headers
+        .get(auth::CALL_TOKEN_HEADER)
+        .and_then(|v| v.to_str().ok())
+        .map(|t| auth::verify_call_token(&state.call_token_secret, &call_id, t))
+        .unwrap_or(false);
+    if !token_ok {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    if !state.calls.set_location(&call_id, body.lat, body.lng, body.accuracy) {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    crate::db::record_call_location(&state.db, &call_id, body.lat, body.lng, body.accuracy).await;
+    let loc = serde_json::json!({ "lat": body.lat, "lng": body.lng, "accuracy": body.accuracy });
+    broadcast_agents(
+        &state,
+        &serde_json::json!({ "event": "LOCATION_UPDATE", "call_id": call_id, "location": loc }),
+    )
+    .await;
+    Ok(axum::Json(serde_json::json!({ "ok": true })))
 }
 
 pub(crate) async fn broadcast_agents(state: &AppState, msg: &serde_json::Value) {
