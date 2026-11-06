@@ -19,6 +19,7 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app/backend/target/release/vecna-server /usr/local/bin/vecna-server
 COPY --from=web /web/dist /app/frontend/dist
+COPY resource /app/resource
 WORKDIR /app/backend
 EXPOSE 8000
 CMD ["vecna-server"]
