@@ -7,7 +7,7 @@ COPY frontend ./
 RUN npm run build && ls dist/index.html
 
 # Stage 1: build the Rust backend
-FROM rust:1.88-bookworm AS build
+FROM rust:1.90-bookworm AS build
 WORKDIR /app
 COPY backend/Cargo.toml backend/Cargo.lock ./backend/
 COPY backend/src ./backend/src
