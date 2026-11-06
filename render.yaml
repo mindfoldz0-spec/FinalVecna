@@ -1,0 +1,36 @@
+# FinalVecna on Render — Rust/Axum backend + Vite/React frontend, one service.
+#
+# Deploy (1-click): https://dashboard.render.com -> New -> Blueprint -> select
+# this Git repo (master branch). Render builds the repo-root Dockerfile
+# (frontend build + Rust compile, proven on Antideploy) and prompts for the
+# sync:false values below — paste them from your local .env, nothing is
+# committed.
+services:
+  - type: web
+    runtime: docker
+    name: finalvecna
+    region: singapore
+    plan: free
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      # Self-hosted SER model on EC2 (public IP, changes if the instance is
+      # stopped/started — update this value and redeploy when it does).
+      - key: EMOTION_ENDPOINT
+        value: "http://3.25.119.144:8080"
+      - key: EMOTION_API_KEY
+        sync: false
+      # Speech-to-text + triage keys (Sarvam primary / Gnani fallback / Groq)
+      - key: SARVAM_API_KEY
+        sync: false
+      - key: GNANI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: "qwen/qwen3.8-27b"
+      # Officer login (SSM /vecna/officer/password locally; dashboard here)
+      - key: AGENT_PASSWORD
+        sync: false
+      - key: CALL_TOKEN_SECRET
+        sync: false
