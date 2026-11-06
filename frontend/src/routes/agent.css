@@ -15,7 +15,7 @@
   min-height: 100vh;
   display: grid;
   place-items: center;
-  background: var(--aqua);
+  background: var(--deep-sea-deep);
   font-family: system-ui, sans-serif;
   position: relative;
   overflow: hidden;
@@ -42,9 +42,9 @@
   width: 320px;
   padding: 28px;
   background: var(--deep-sea);
-  border: 1px solid var(--deep-sea-deep);
+  border: 1px solid rgba(173, 232, 244, 0.35);
   border-radius: 14px;
-  box-shadow: 0 12px 32px rgba(2, 36, 61, 0.35);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 .login-card h1 { margin: 0 0 8px; font-size: 18px; color: var(--aqua); font-weight: 700; }
 .login-card select, .login-card input {
@@ -72,14 +72,14 @@
   display: grid;
   grid-template-columns: 320px 1fr;
   min-height: 100vh;
-  background: var(--aqua);
-  color: var(--deep-sea-deep);
+  background: var(--deep-sea-dark);
+  color: var(--aqua-soft);
   font-family: system-ui, sans-serif;
 }
 
 .queue {
-  background: var(--aqua-soft);
-  border-right: 1px solid var(--deep-line);
+  background: var(--deep-sea);
+  border-right: 1px solid rgba(173, 232, 244, 0.22);
   padding: 18px;
   overflow-y: auto;
   display: flex;
@@ -94,21 +94,23 @@
   width: min(220px, 100%);
   height: min(220px, 40vh);
   align-self: center;
+  opacity: 0.9;
 }
+.queue-orb canvas { filter: drop-shadow(0 0 10px rgba(90, 185, 214, 0.45)); }
 .queue-head {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: var(--deep-sea);
+  color: var(--aqua);
   margin-bottom: 14px;
 }
 .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-.dot.ok { background: #16a34a; box-shadow: 0 0 6px rgba(22, 163, 74, 0.6); }
-.dot.bad { background: #dc2626; }
-.queue h2 { font-size: 14px; margin: 0 0 12px; color: var(--deep-sea); }
+.dot.ok { background: #4ade80; box-shadow: 0 0 6px rgba(74, 222, 128, 0.7); }
+.dot.bad { background: #f87171; }
+.queue h2 { font-size: 14px; margin: 0 0 12px; color: var(--aqua); }
 .empty {
-  color: var(--deep-sea);
+  color: var(--aqua-dim);
   font-size: 13px;
   font-weight: 600;
 }
@@ -119,11 +121,11 @@
   gap: 4px;
   padding: 12px;
   margin-bottom: 10px;
-  background: var(--deep-sea);
-  border: 1px solid var(--deep-sea-deep);
+  background: var(--deep-sea-deep);
+  border: 1px solid rgba(173, 232, 244, 0.3);
   border-radius: 10px;
   color: var(--aqua);
-  box-shadow: 0 4px 14px rgba(2, 36, 61, 0.3);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 .q-num { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
 .q-meta { font-size: 12px; color: var(--aqua-dim); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -194,7 +196,7 @@
 .emo.u2 { background: #f59e0b; color: #3d2200; }
 .emo.u1 { background: #94a3b8; color: #0b2239; }
 .emo.u0 { background: #10b981; color: #06281a; }
-.incall-emo { color: var(--deep-sea); font-size: 14px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.incall-emo { color: var(--aqua-dim); font-size: 14px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
 .queue-item button {
   margin-top: 6px;
   padding: 7px;
@@ -226,7 +228,7 @@
   position: absolute;
   inset: 0;
   background: url("/satyameva-jayate.png") center / auto 75% no-repeat;
-  opacity: 0.28;
+  opacity: 0.16;
   mix-blend-mode: screen;
   pointer-events: none;
   z-index: 0;
@@ -234,7 +236,7 @@
 
 .active > * { position: relative; z-index: 1; }
 .idle p {
-  color: var(--deep-sea);
+  color: var(--aqua-dim);
   font-weight: 600;
   font-size: 16px;
   text-align: center;

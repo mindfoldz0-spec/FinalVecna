@@ -443,7 +443,7 @@ export default function Agent() {
         {/* Orb lives in the queue panel: always visible while nothing is
             queued and no call is active; replaced by the call list otherwise. */}
         {calls.length === 0 && !activeCallId && (
-          <div className="queue-orb"><Strands colors={['#02243d', '#013a63', '#0a4a73', '#1273a8', '#5ab9d6', '#7fd1e8', '#ade8f4']} /></div>
+          <div className="queue-orb"><Strands colors={['#0a4a73', '#1273a8', '#2e95c9', '#5ab9d6', '#7fd1e8', '#ade8f4']} /></div>
         )}
       </aside>
 
