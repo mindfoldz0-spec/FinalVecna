@@ -78,6 +78,9 @@ export default function Agent() {
   const [activeCallId, setActiveCallId] = useState<string | null>(null);
   const [status, setStatus] = useState('online');
   const [muted, setMuted] = useState(false);
+  // live session timer (client-side, starts when the call is claimed)
+  const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
+  const [nowTick, setNowTick] = useState(Date.now());
 
   const socketRef = useRef<CallSocket<unknown> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -117,6 +120,20 @@ export default function Agent() {
     return () => { socketRef.current?.close(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
+
+  // 1s ticker while a call is active (drives the session timer)
+  useEffect(() => {
+    if (callStartedAt == null) return;
+    const t = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [callStartedAt]);
+
+  const elapsed = callStartedAt == null ? '00:00' : (() => {
+    const s = Math.max(0, Math.floor((nowTick - callStartedAt) / 1000));
+    const mm = String(Math.floor(s / 60)).padStart(2, '0');
+    const ss = String(s % 60).padStart(2, '0');
+    return `${mm}:${ss}`;
+  })();
 
   async function login(e: React.FormEvent) {
     e.preventDefault();
@@ -276,10 +293,13 @@ export default function Agent() {
   }
 
   async function startCallSession(callId: string) {
+    setCallStartedAt(Date.now());
+    setNowTick(Date.now());
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
+      setCallStartedAt(null);
       setStatus('mic required — call returned to queue');
       socketRef.current?.send({ action: 'RELEASE_CALL', call_id: callId });
       return;
@@ -391,6 +411,7 @@ export default function Agent() {
     if (callId && rec) await stopAndUpload(rec, callId, '', 'agent_audio');
     pendingSignalsRef.current = pendingSignalsRef.current.filter((q) => q.call_id !== callId);
     setActiveCall(null);
+    setCallStartedAt(null);
     setStatus('online');
   }
 
@@ -435,21 +456,26 @@ export default function Agent() {
     <div className="agent-console">
       <aside className="queue">
         <div className="queue-head">
-          <span>{agentId}</span>
+          <span className="who">{agentId}</span>
           <span className={`dot ${status === 'online' ? 'ok' : 'bad'}`} />{status}
         </div>
-        <h2>Incoming ({calls.length})</h2>
-        {calls.length === 0 && <p className="empty">No calls waiting</p>}
+        <h2>Incoming <span className="q-count">{calls.length}</span></h2>
+        {calls.length === 0 && (
+          <p className="empty">No calls waiting<small>New emergencies will appear here instantly</small></p>
+        )}
         {sortedCalls.map((c) => {
           const urg = effectiveUrgency(c, emotions, triages);
           return (
             <div key={c.call_id} className={`queue-item st-${c.status.toLowerCase()}`}>
               <div className="q-num">
-                {c.dialed_number}
+                <span className="num-label">#{c.dialed_number}</span>
                 {urg >= 0 && <span className={`urg u${urg}`}>U{urg}</span>}
               </div>
               <div className="q-meta">
-                {c.status}{c.agent_id ? ` · ${c.agent_id}` : ''}
+                <span className={`q-status ${c.status === 'WAITING' ? '' : c.status.toLowerCase().replace('waiting','')} ${c.status.toLowerCase()}`}>
+                  <i />{c.status}
+                </span>
+                {c.agent_id && <span className="q-agent">· {c.agent_id}</span>}
                 {emotions[c.call_id] && <EmotionChip emo={emotions[c.call_id]} />}
               </div>
               {c.location && <div className="q-meta"><LocationChip loc={c.location} /></div>}
@@ -469,19 +495,30 @@ export default function Agent() {
 
       <main className="active">
         {!activeCallId ? (
-          <div className="idle"><p>Pick a call from the queue</p></div>
+          <div className="idle">
+            <h3>No active call</h3>
+            <p>Pick a call from the queue to start assisting.</p>
+            <small>Urgency is sorted high → low · live emotion shown per caller</small>
+          </div>
         ) : (
           <div className="incall">
+            <div className="incall-context">
+              <span className="ctx-num">#{calls.find((c) => c.call_id === activeCallId)?.dialed_number ?? '···'}</span>
+              <span className="ctx-sep" />
+              <span className="ctx-timer">⏱ {elapsed}</span>
+              {(() => {
+                const loc = calls.find((c) => c.call_id === activeCallId)?.location;
+                return loc ? (
+                  <span className="ctx-block"><span className="ctx-label">Location</span><LocationChip loc={loc} /></span>
+                ) : null;
+              })()}
+              {emotions[activeCallId] && (
+                <span className="ctx-block"><span className="ctx-label">Emotion</span><EmotionChip emo={emotions[activeCallId]} /></span>
+              )}
+            </div>
             <div className="incall-orb">
               <CrystalizedBall preset="abyss" particleCount={6000} size={0.55} speed={1} />
             </div>
-            {activeCallId && emotions[activeCallId] && (
-              <div className="incall-emo">Caller emotion: <EmotionChip emo={emotions[activeCallId]} /></div>
-            )}
-            {activeCallId && (() => {
-              const loc = calls.find((c) => c.call_id === activeCallId)?.location;
-              return loc ? <div className="incall-emo">Caller location: <LocationChip loc={loc} /></div> : null;
-            })()}
             {activeCallId && triages[activeCallId] && (
               <div className="incall-triage"><TriagePanel t={triages[activeCallId]} /></div>
             )}
