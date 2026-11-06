@@ -327,21 +327,30 @@ export default function Agent() {
       if (!canvas) return;
       const g = canvas.getContext('2d')!;
       analyser.getByteTimeDomainData(buf);
-      g.fillStyle = 'rgba(173, 232, 244, 0.12)';
+      // opaque fill — a translucent one compounds every frame and washes
+      // the canvas to light blue, hiding the (light) waveform.
+      g.fillStyle = '#02243d';
       g.fillRect(0, 0, canvas.width, canvas.height);
-      g.strokeStyle = color;
-      g.lineWidth = 2;
-      g.beginPath();
-      for (let i = 0; i < buf.length; i++) {
-        const x = (i / buf.length) * canvas.width;
-        const y = (buf[i] / 255) * canvas.height;
-        i === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
-      }
-      g.stroke();
+      const trace = (width: number, alpha: number) => {
+        g.strokeStyle = color;
+        g.globalAlpha = alpha;
+        g.lineWidth = width;
+        g.lineJoin = 'round';
+        g.beginPath();
+        for (let i = 0; i < buf.length; i++) {
+          const x = (i / buf.length) * canvas.width;
+          const y = (buf[i] / 255) * canvas.height;
+          i === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
+        }
+        g.stroke();
+      };
+      trace(7, 0.18); // glow
+      trace(2.5, 1); // core
+      g.globalAlpha = 1;
     };
     const loop = () => {
-      draw(callerCanvasRef.current, a2, '#ade8f4');
-      draw(agentCanvasRef.current, a1, '#7fd1e8');
+      draw(callerCanvasRef.current, a2, '#ffb703');
+      draw(agentCanvasRef.current, a1, '#ade8f4');
       rafRef.current = requestAnimationFrame(loop);
     };
     loop();
@@ -453,8 +462,14 @@ export default function Agent() {
               <div className="incall-triage"><TriagePanel t={triages[activeCallId]} /></div>
             )}
             <div className="waves">
-              <canvas ref={callerCanvasRef} width={360} height={70} />
-              <canvas ref={agentCanvasRef} width={360} height={70} />
+              <div className="wave">
+                <span className="wave-label caller">Caller</span>
+                <canvas ref={callerCanvasRef} width={360} height={70} />
+              </div>
+              <div className="wave">
+                <span className="wave-label agent">You</span>
+                <canvas ref={agentCanvasRef} width={360} height={70} />
+              </div>
             </div>
             <div className="incall-btns">
               <button onClick={toggleMute} className={muted ? 'on' : ''}>{muted ? 'Unmute' : 'Mute'}</button>

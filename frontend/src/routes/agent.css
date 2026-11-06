@@ -107,7 +107,11 @@
 .dot.ok { background: #16a34a; box-shadow: 0 0 6px rgba(22, 163, 74, 0.6); }
 .dot.bad { background: #dc2626; }
 .queue h2 { font-size: 14px; margin: 0 0 12px; color: var(--deep-sea); }
-.empty { color: var(--deep-dim); font-size: 13px; }
+.empty {
+  color: var(--deep-sea);
+  font-size: 13px;
+  font-weight: 600;
+}
 
 .queue-item {
   display: flex;
@@ -190,7 +194,7 @@
 .emo.u2 { background: #f59e0b; color: #3d2200; }
 .emo.u1 { background: #94a3b8; color: #0b2239; }
 .emo.u0 { background: #10b981; color: #06281a; }
-.incall-emo { color: var(--aqua-dim); font-size: 13px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.incall-emo { color: var(--deep-sea); font-size: 14px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
 .queue-item button {
   margin-top: 6px;
   padding: 7px;
@@ -229,16 +233,39 @@
 }
 
 .active > * { position: relative; z-index: 1; }
-.idle p { color: var(--deep-sea); }
+.idle p {
+  color: var(--deep-sea);
+  font-weight: 600;
+  font-size: 16px;
+  text-align: center;
+}
 
 .incall { display: flex; flex-direction: column; align-items: center; gap: 18px; }
 .incall-orb { width: 220px; height: 220px; }
-.waves { display: flex; flex-direction: column; gap: 10px; }
+.waves {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--deep-sea);
+  border: 1px solid var(--deep-sea-deep);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 8px 24px rgba(2, 36, 61, 0.35);
+}
+.wave { display: flex; flex-direction: column; gap: 6px; }
+.wave-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.wave-label.caller { color: #ffb703; }
+.wave-label.agent { color: var(--aqua); }
 .waves canvas {
   width: 360px;
   height: 70px;
   background: var(--deep-sea-deep);
-  border: 1px solid var(--deep-sea-deep);
+  border: 1px solid rgba(173, 232, 244, 0.35);
   border-radius: 10px;
 }
 .incall-btns { display: flex; gap: 12px; }
