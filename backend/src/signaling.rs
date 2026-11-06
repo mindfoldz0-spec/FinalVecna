@@ -222,10 +222,22 @@ pub async fn agent_ws(
     }
     // CSWSH guard: a web page must not be able to open this cookie-authenticated
     // socket from the officer's browser. Non-browser clients send no Origin.
+    // Behind the platform proxy the raw Host header may differ from the public
+    // origin, so also accept X-Forwarded-Host (set by the proxy). Ports stripped.
     if let Some(origin) = headers.get("origin").and_then(|o| o.to_str().ok()) {
-        let origin_host = origin.split("://").nth(1).unwrap_or("");
-        let host = headers.get("host").and_then(|h| h.to_str().ok()).unwrap_or("");
-        if origin_host != host {
+        let strip_port = |h: &str| -> String {
+            h.split('/').next().unwrap_or(h).split(':').next().unwrap_or(h).to_string()
+        };
+        let origin_host = strip_port(origin.split("://").nth(1).unwrap_or(""));
+        let mut ok = false;
+        for name in ["host", "x-forwarded-host"] {
+            if let Some(v) = headers.get(name).and_then(|h| h.to_str().ok()) {
+                if strip_port(v) == origin_host {
+                    ok = true;
+                }
+            }
+        }
+        if !ok {
             return StatusCode::FORBIDDEN.into_response();
         }
     }
